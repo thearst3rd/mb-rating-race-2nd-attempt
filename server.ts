@@ -25,13 +25,12 @@ interface Mission {
  * Get level data from marbleblast.com
  */
 
-let missions: Record<number, Mission> | undefined = undefined;
+let missionReference: Record<number, Mission> | undefined = undefined;
 
 async function getMissions(): Promise<Record<string, Mission> | undefined> {
 	let missions: Record<string, Mission> = {}
-	//const res = await fetch("https://marbleblast.com/pq/leader/api/Score/GetGlobalScoresRatingRace.php");
 	const res = await fetch("https://marbleblast.com/pq/leader/api/Mission/GetMissionList.php");
-	if (res.status != 200)
+	if (res.status !== 200)
 		return undefined;
 
 	const json = await res.json();
@@ -54,17 +53,61 @@ async function getMissions(): Promise<Record<string, Mission> | undefined> {
  * Poll server for scores and calulate ratings
  */
 
+let lastUpdated = new Date();
+let missions: Record<string, Record<string, Array<Mission>>>; // {game_name: {difficulty_name: [mission]}}
 let pollInterval: NodeJS.Timeout | undefined = undefined;
 
+function calcMissions(missionList: Array<number>): Record<string, Record<string, Array<Mission>>> {
+	if (missionReference === undefined)
+		return {}
+
+	let missions: Record<string, Record<string, Array<Mission>>> = {}
+	let lastGame: string | undefined = undefined;
+	let lastDifficulty: string | undefined = undefined;
+	let currentGame: Record<string, Array<Mission>> | undefined = undefined;
+	let currentDifficulty: Array<Mission> | undefined = undefined;
+
+	missionList.forEach(missionId => {
+		const mission = (missionReference as Record<number, Mission>)[missionId];
+		if (currentGame === undefined || mission.game_name !== lastGame) {
+			lastDifficulty = undefined;
+			currentDifficulty = undefined;
+			lastGame = mission.game_name;
+			if (!(lastGame in missions))
+				missions[lastGame] = {};
+			currentGame = missions[lastGame];
+		}
+		if (currentDifficulty === undefined || mission.difficulty_name !== lastDifficulty) {
+			lastDifficulty = mission.difficulty_name;
+			if (!(lastDifficulty in currentGame))
+				currentGame[lastDifficulty] = [];
+			currentDifficulty = currentGame[lastDifficulty];
+		}
+		currentDifficulty.push(mission);
+	});
+	return missions;
+}
+
 async function pollScores() {
-	if (!missions)
-		missions = await getMissions();
-	if (!missions) {
-		console.error("Failed to get missions!!");
-		return; // ruh roh...
+	if (!missionReference) {
+		missionReference = await getMissions();
+		if (!missionReference) {
+			// ruh roh...
+			console.error("Failed to get missions!!");
+			return;
+		}
 	}
 
-	//console.log(missions);
+	const res = await fetch("https://marbleblast.com/pq/leader/api/Score/GetGlobalScoresRatingRace.php");
+	if (res.status !== 200) {
+		console.error("Failed to get scores!!");
+		return;
+	}
+	const json = await res.json();
+
+	missions = calcMissions(json.missionList);
+
+	lastUpdated = new Date();
 }
 
 pollInterval = setInterval(pollScores, POLL_INTERVAL);
@@ -76,6 +119,10 @@ pollScores();
  */
 
 app.use(express.static(path.join(__dirname, "static")));
+
+app.get("/missions", (req, res) => {
+	res.json(missions);
+});
 
 app.listen(PORT, () => {
 	console.log(`Started HTTP server on port ${PORT}`);
