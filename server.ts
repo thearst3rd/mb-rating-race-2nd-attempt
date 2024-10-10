@@ -48,15 +48,6 @@ async function getMissions(): Promise<Record<string, Mission> | undefined> {
 	return missions;
 }
 
-
-/*
- * Poll server for scores and calulate ratings
- */
-
-let lastUpdated = new Date();
-let missions: Record<string, Record<string, Array<Mission>>>; // {game_name: {difficulty_name: [mission]}}
-let pollInterval: NodeJS.Timeout | undefined = undefined;
-
 function calcMissions(missionList: Array<number>): Record<string, Record<string, Array<Mission>>> {
 	if (missionReference === undefined)
 		return {}
@@ -87,6 +78,16 @@ function calcMissions(missionList: Array<number>): Record<string, Record<string,
 	});
 	return missions;
 }
+
+
+/*
+ * Poll server for scores and calulate ratings
+ */
+
+let lastUpdated = new Date();
+let pollInterval: NodeJS.Timeout | undefined = undefined;
+
+let missions: Record<string, Record<string, Array<Mission>>>; // {game_name: {difficulty_name: [mission]}}
 
 async function pollScores() {
 	if (!missionReference) {
