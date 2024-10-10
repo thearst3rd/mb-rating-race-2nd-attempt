@@ -1,11 +1,86 @@
 <!DOCTYPE html>
-<html>
-<head>
-	<meta charset="UTF-8">
-	<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
-</head>
+<html lang="en" data-bs-theme="dark">
+	<head>
+		<meta charset="UTF-8">
+		<meta name="viewport" content="width=device-width, initial-scale=1">
+		<title>Marble Blast Rating Race</title>
+		<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
+	</head>
+	<!-- <style>
+		table, th, td {
+			border: 1px solid white;
+			border-collapse: collapse;
+		}
+	</style> -->
+	<body>
+		<div class="container my-5">
+			<h1>Marble Blast Rating Race</h1>
+			<h2 id="fetching-text">You'll need javascript enabled for this! Sorry!!!</h2>
+		</div>
+		<p id="debug-text"></p>
+		<table class="table table-bordered" id="score-table"></table>
+		<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
+	</body>
+	<script>
+		const scoreTable = document.getElementById("score-table");
+		const fetchingText = document.getElementById("fetching-text");
+		const debugText = document.getElementById("debug-text");
+		fetchingText.innerText = "Fetching missions...";
 
-<body>
-	<h1>Hello, World!</h1>
-</body>
+		let lastUpdated = undefined;
+		let pollInterval = undefined;
+		let currentlyPolling = true;
+
+		async function loadData() {
+			try {
+				let res = await fetch("./lastupdated");
+				if (res.status != 200) {
+					console.error("Couldn't fetch last updated...");
+					currentlyPolling = false;
+					return;
+				}
+				let json = await res.json(); // "json" but it is actually a string
+				lastUpdated = new Date(json);
+				console.log("Last updated: " + lastUpdated);
+
+				res = await fetch("./missions");
+				json = await res.json();
+
+				debugText.innerText = JSON.stringify(json);
+
+				fetchingText.innerText = "";
+			} catch (ex) {
+				console.error(ex);
+			}
+			currentlyPolling = false;
+		}
+
+		async function poll() {
+			try {
+				if (currentlyPolling) {
+					console.warn("Already polling!!");
+					return;
+				}
+				currentlyPolling = true;
+				const res = await fetch("./lastupdated");
+				if (res.status != 200) {
+					console.error("Couldn't fetch last updated...");
+					currentlyPolling = false;
+					return;
+				}
+				const json = await res.json(); // "json" but it is actually a string
+				const date = new Date(json);
+				if (lastUpdated === undefined || date > lastUpdated) {
+					location.reload();
+				}
+			} catch (ex) {
+				console.error(ex);
+			}
+			currentlyPolling = false;
+		}
+
+		loadData();
+
+		pollInterval = setInterval(poll, 3 * 1000);
+	</script>
 </html>
