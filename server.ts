@@ -105,7 +105,7 @@ function calcMissions(missionList: Array<number>): Record<string, Record<string,
  * Poll server for scores and calculate ratings
  */
 
-let lastUpdated = new Date();
+let lastUpdated = new Date("1970-01-01T00:00:00Z");
 let pollInterval: NodeJS.Timeout | undefined = undefined;
 
 let missions: Record<string, Record<string, Array<Mission>>>; // {game_name: {difficulty_name: [mission]}}
@@ -234,6 +234,11 @@ pollScores();
 app.use(express.static(path.join(__dirname, "static")));
 
 app.get("/missions", (req, res) => {
+	if (!missions) {
+		res.status(500);
+		res.json({error: "Please wait lmao"});
+		return;
+	}
 	res.json(missions);
 });
 
@@ -242,7 +247,33 @@ app.get("/lastupdated", (req, res) => {
 })
 
 app.get("/scores", (req, res) => {
+	if (!scores) {
+		res.status(500);
+		res.json({error: "Please wait lmao"});
+		return;
+	}
 	res.json(scores);
+})
+
+app.get("/playerscores/:player", (req, res) => {
+	if (!scores) {
+		res.status(500);
+		res.json({error: "Please wait lmao"});
+		return;
+	}
+	if (!("player" in req.params)) {
+		res.status(400);
+		res.json({error: "What player lmao"});
+		return;
+	}
+	for (const player of scores) {
+		if (player.name === req.params.player) {
+			res.json(player);
+			return;
+		}
+	}
+	res.status(404);
+	res.json({error: "Player not found"});
 })
 
 app.listen(PORT, () => {

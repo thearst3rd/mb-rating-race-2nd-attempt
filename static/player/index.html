@@ -14,6 +14,8 @@
 	<body>
 		<div class="container my-5">
 			<h1>Marble Blast Rating Race</h1>
+			<a href="..">Back</a>
+			<h2 id="player-breakdown-text"></h2>
 			<h3 id="fetching-text">You'll need javascript enabled for this! Sorry!!!</h3>
 		</div>
 		<p id="debug-text"></p>
@@ -22,27 +24,39 @@
 	</body>
 	<script>
 		const scoreTable = document.getElementById("score-table");
+		const playerBreakdownText = document.getElementById("player-breakdown-text");
 		const fetchingText = document.getElementById("fetching-text");
 		const debugText = document.getElementById("debug-text");
 		fetchingText.innerText = "Fetching missions...";
+
+		const usp = new URLSearchParams(window.location.search);
+		const playerName = usp.get("player");
+		if (!playerName) {
+			console.error("You must supply a player name!");
+			fetchingText.innerText = "No player provided!";
+		}
 
 		let lastUpdated = undefined;
 		let pollInterval = undefined;
 		let currentlyPolling = true;
 
 		let gameRowMap = {}; // {gameName: idx}
-		let gameTotalRowMap = {}; // {gameName: idx}
 		let difficultyRowMap = {}; // {gameName: {difficultyName: idx}}
-		let difficultyTotalRowMap = {}; // {gameName: {difficultyName: idx}}
 		let missionRowMap = {}; // {missionId: idx}
 
 		function createTable(json) {
 			// Construct table header
-			scoreTable.insertRow().insertCell().outerHTML = "<th>Rank</th>";
-			scoreTable.insertRow().insertCell().outerHTML = "<th>Player</th>";
-			scoreTable.insertRow().insertCell().outerHTML = "<th>Total Rating</th>";
+			{
+				const header = scoreTable.insertRow();
+				header.insertCell().outerHTML = "<th>Level</th>";
+				header.insertCell().outerHTML = "<th>Score ID</th>";
+				header.insertCell().outerHTML = "<th>Score</th>";
+				header.insertCell().outerHTML = "<th>Total Bonus</th>";
+				header.insertCell().outerHTML = "<th>Rating</th>";
+				header.insertCell().outerHTML = "<th>Timestamp</th>";
+			}
 
-			let currentRow = 3; // After the first three header rows
+			let currentRow = 1; // After the first header row
 
 			// Do we have multiple games involved?
 			const multipleGames = Object.keys(json).length > 1;
@@ -50,18 +64,21 @@
 			// Construct the levels
 			for (const gameName in json) {
 				if (multipleGames) {
-					scoreTable.insertRow().insertCell().outerHTML = `<th>${gameName}</th>`;
+					const cell = scoreTable.insertRow().insertCell();
+					cell.outerHTML = `<th colspan="6">${gameName}</th>`;
+					//cell.colSpan = 6;
 					gameRowMap[gameName] = currentRow;
 					currentRow++;
 				}
 				difficultyRowMap[gameName] = {}
-				difficultyTotalRowMap[gameName] = {}
 				const game = json[gameName];
 				// Do we have multiple difficulties in this game?
 				const multipleDifficulties = Object.keys(game).length > 1;
 				for (const difficultyName in game) {
 					if (multipleDifficulties) {
-						scoreTable.insertRow().insertCell().outerHTML = `<th>${difficultyName}</th>`;
+						const cell = scoreTable.insertRow().insertCell();
+						cell.outerHTML = `<th colspan="6">${difficultyName}</th>`;
+						//cell.colSpan = 6;
 						difficultyRowMap[gameName][difficultyName] = currentRow;
 						currentRow++;
 					}
@@ -71,63 +88,37 @@
 						missionRowMap[mission.id] = currentRow;
 						currentRow++;
 					}
-					if (multipleDifficulties) {
-						scoreTable.insertRow().insertCell().outerHTML = `<th>Total ${difficultyName}</th>`;
-						difficultyTotalRowMap[gameName][difficultyName] = currentRow;
-						currentRow++;
-					}
-				}
-				if (multipleGames) {
-					scoreTable.insertRow().insertCell().outerHTML = `<th>Total ${gameName}</th>`;
-					gameTotalRowMap[gameName] = currentRow;
-					currentRow++;
 				}
 			}
 		}
 
-		function populateTable(json) {
-			for (const idx in json) {
-				const player = json[idx];
-				const rank = parseInt(idx) + 1;
-
-				for (const gameName in gameRowMap) {
-					scoreTable.rows[gameRowMap[gameName]].cells[0].colSpan += 1;
-				}
-				for (const gameName in difficultyRowMap) {
-					const game = difficultyRowMap[gameName]
-					for (const difficultyName in game) {
-						scoreTable.rows[game[difficultyName]].cells[0].colSpan += 1;
-					}
-				}
-
-				scoreTable.rows[0].insertCell().innerText = rank;
-				scoreTable.rows[1].insertCell().innerHTML = `<a href="./player?player=${player.name}">${player.name}</a>`;
-				scoreTable.rows[2].insertCell().innerText = player.totals.total;
-
-				for (const gameName in player.scores) {
-					const game = player.scores[gameName];
-					for (const difficultyName in game) {
-						const diff = game[difficultyName];
-						for (const missionId in diff) {
-							const score = diff[missionId];
-							const cell = scoreTable.rows[missionRowMap[missionId]].insertCell();
-							if (score)
-								cell.innerText = score.rating;
-							else
-								cell.innerText = "-";
+		function populateTable(player) {
+			for (const gameName in player.scores) {
+				const game = player.scores[gameName];
+				for (const difficultyName in game) {
+					const diff = game[difficultyName];
+					for (const missionId in diff) {
+						const score = diff[missionId];
+						const row = scoreTable.rows[missionRowMap[missionId]];
+						if (score) {
+							row.insertCell().innerText = score.id;
+							row.insertCell().innerText = score.score;
+							row.insertCell().innerText = score.total_bonus;
+							row.insertCell().innerText = score.rating;
+							row.insertCell().innerText = score.timestamp;
+						} else {
+							const cell = row.insertCell();
+							cell.innerText = "-";
+							cell.colSpan = 5;
 						}
-						if (difficultyName in difficultyTotalRowMap[gameName])
-							scoreTable.rows[difficultyTotalRowMap[gameName][difficultyName]].insertCell().innerText = player.totals.games[gameName].difficulties[difficultyName];
 					}
-					if (gameName in gameTotalRowMap)
-						scoreTable.rows[gameTotalRowMap[gameName]].insertCell().innerText = player.totals.games[gameName].total;
 				}
 			}
 		}
 
 		async function loadData() {
 			try {
-				let res = await fetch("./lastupdated");
+				let res = await fetch("../lastupdated");
 				if (res.status != 200) {
 					console.error("Couldn't fetch last updated...");
 					currentlyPolling = false;
@@ -136,13 +127,15 @@
 				let json = await res.json(); // "json" but it is actually a string
 				lastUpdated = new Date(json);
 
-				res = await fetch("./missions");
+				res = await fetch("../missions");
 				json = await res.json();
 
 				createTable(json);
 
-				res = await fetch("./scores");
+				res = await fetch(`../playerscores/${playerName}`);
 				json = await res.json();
+
+				playerBreakdownText.innerText = `Player Breakdown: ${playerName}`;
 
 				populateTable(json);
 
@@ -160,7 +153,7 @@
 					return;
 				}
 				currentlyPolling = true;
-				const res = await fetch("./lastupdated");
+				const res = await fetch("../lastupdated");
 				if (res.status != 200) {
 					console.error("Couldn't fetch last updated...");
 					currentlyPolling = false;
@@ -177,8 +170,9 @@
 			currentlyPolling = false;
 		}
 
-		loadData();
-
-		pollInterval = setInterval(poll, 3 * 1000);
+		if (playerName) {
+			loadData();
+			pollInterval = setInterval(poll, 3 * 1000);
+		}
 	</script>
 </html>
