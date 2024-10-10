@@ -147,6 +147,7 @@ function calcScores(scores: Array<Score>): Array<Player> {
 		const mission = (missionReference as Record<number, Mission>)[score.mission_id];
 		const prevScore = player.scores[mission.game_name][mission.difficulty_name][mission.id];
 		if (prevScore === undefined || (score.rating > prevScore.rating)) {
+			score.timestamp = new Date(score.timestamp);
 			player.scores[mission.game_name][mission.difficulty_name][mission.id] = score;
 		}
 	}
