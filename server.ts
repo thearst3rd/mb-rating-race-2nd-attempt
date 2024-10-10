@@ -184,13 +184,22 @@ function calcScores(scores: Array<Score>): Array<Player> {
 	return result;
 }
 
+let currentlyPolling = false;
+
 async function pollScores() {
+	if (currentlyPolling) {
+		console.warn("Tried polling while already polling!");
+		return;
+	}
+	currentlyPolling = true;
+
 	if (!missionReference) {
 		console.log("Fetching missions...");
 		missionReference = await getMissions();
 		if (!missionReference) {
 			// ruh roh...
 			console.error("Failed to get missions!!");
+			currentlyPolling = false;
 			return;
 		}
 	}
@@ -199,6 +208,7 @@ async function pollScores() {
 	const res = await fetch("https://marbleblast.com/pq/leader/api/Score/GetGlobalScoresRatingRace.php");
 	if (res.status !== 200) {
 		console.error("Failed to get scores!!");
+		currentlyPolling = false;
 		return;
 	}
 	const json = await res.json();
@@ -209,6 +219,7 @@ async function pollScores() {
 	scores = calcScores(json.scores);
 
 	lastUpdated = new Date();
+	currentlyPolling = false;
 	console.log("Done");
 }
 
