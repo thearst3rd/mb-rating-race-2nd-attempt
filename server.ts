@@ -25,7 +25,7 @@ interface Player {
 	name: string;
 	//startTime: Date | undefined;
 	//endTime: Date | undefined;
-	scores: Record<string, Record<string, Record<number, Score | undefined>>>;
+	scores: Record<string, Record<string, Record<number, Score | null>>>;
 	totals: {total: number, games: Record<string, {total: number, difficulties: Record<string, number>}>};
 }
 
@@ -128,7 +128,7 @@ function createPlayer(username: string, name: string): Player {
 			const diff = game[difficultyName];
 			gameTotal.difficulties[difficultyName] = 0;
 			for (const mission of missions[gameName][difficultyName]) {
-				diff[mission.id] = undefined;
+				diff[mission.id] = null;
 			}
 		}
 	}
@@ -140,13 +140,13 @@ function calcScores(scores: Array<Score>): Array<Player> {
 	// Figure out each player's best score for each level
 	console.log("Adding scores");
 	for (const score of scores) {
-		if (!(score.name in scores)) {
+		if (!(score.name in players)) {
 			players[score.name] = createPlayer(score.username, score.name);
 		}
 		const player = players[score.name];
 		const mission = (missionReference as Record<number, Mission>)[score.mission_id];
 		const prevScore = player.scores[mission.game_name][mission.difficulty_name][mission.id];
-		if (prevScore === undefined || (score.rating > prevScore.rating)) {
+		if (prevScore === null || (score.rating > prevScore.rating)) {
 			score.timestamp = new Date(score.timestamp);
 			player.scores[mission.game_name][mission.difficulty_name][mission.id] = score;
 		}
