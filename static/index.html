@@ -31,7 +31,9 @@
 		let currentlyPolling = true;
 
 		let gameRowMap = {}; // {gameName: idx}
+		let gameTotalRowMap = {}; // {gameName: idx}
 		let difficultyRowMap = {}; // {gameName: {difficultyName: idx}}
+		let difficultyTotalRowMap = {}; // {gameName: {difficultyName: idx}}
 		let missionRowMap = {}; // {missionId: idx}
 
 		function createTable(json) {
@@ -53,6 +55,7 @@
 					currentRow++;
 				}
 				difficultyRowMap[gameName] = {}
+				difficultyTotalRowMap[gameName] = {}
 				const game = json[gameName];
 				// Do we have multiple difficulties in this game?
 				const multipleDifficulties = Object.keys(game).length > 1;
@@ -68,6 +71,16 @@
 						missionRowMap[mission.id] = currentRow;
 						currentRow++;
 					}
+					if (multipleDifficulties) {
+						scoreTable.insertRow().insertCell().outerHTML = `<th>Total ${difficultyName}</th>`;
+						difficultyTotalRowMap[gameName][difficultyName] = currentRow;
+						currentRow++;
+					}
+				}
+				if (multipleGames) {
+					scoreTable.insertRow().insertCell().outerHTML = `<th>Total ${gameName}</th>`;
+					gameTotalRowMap[gameName] = currentRow;
+					currentRow++;
 				}
 			}
 		}
@@ -103,7 +116,11 @@
 							else
 								cell.innerText = "-";
 						}
+						if (difficultyName in difficultyTotalRowMap[gameName])
+							scoreTable.rows[difficultyTotalRowMap[gameName][difficultyName]].insertCell().innerText = player.totals.games[gameName].difficulties[difficultyName];
 					}
+					if (gameName in gameTotalRowMap)
+						scoreTable.rows[gameTotalRowMap[gameName]].insertCell().innerText = player.totals.games[gameName].total;
 				}
 			}
 		}
