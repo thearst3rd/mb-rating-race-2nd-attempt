@@ -3,8 +3,8 @@
  * Speedrun because I lost data and had no backup L.O.L.! ! !
  */
 
-const path = require("path")
-const express = require("express")
+import path from "path"
+import express from "express"
 const app = express()
 const PORT = 7800
 
