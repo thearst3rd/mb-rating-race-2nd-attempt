@@ -1,14 +1,13 @@
 {
   "name": "mb-rating-race",
   "version": "0.0.1",
-  "main": "server.js",
   "scripts": {
-    "start": "ts-node server.ts",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "check": "tsc",
+    "start": "tsc && ts-node server.ts",
+    "start-no-check": "ts-node server.ts"
   },
   "author": "thearst3rd",
   "license": "MIT",
-  "description": "",
   "dependencies": {
     "express": "^4.21.1"
   },
