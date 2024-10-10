@@ -20,6 +20,27 @@ interface Mission {
 	// I don't think we care about the rest
 }
 
+interface Player {
+	username: string;
+	name: string;
+	//startTime: Date | undefined;
+	//endTime: Date | undefined;
+	scores: Record<string, Record<string, Record<number, Score | undefined>>>;
+	totals: {total: number, games: Record<string, {total: number, difficulties: Record<string, number>}>};
+}
+
+interface Score {
+	id: number;
+	mission_id: number;
+	username: string;
+	name: string;
+	score: number;
+	score_type: "time" | "score";
+	total_bonus: number;
+	rating: number;
+	timestamp: Date;
+}
+
 
 /*
  * Get level data from marbleblast.com
@@ -81,16 +102,90 @@ function calcMissions(missionList: Array<number>): Record<string, Record<string,
 
 
 /*
- * Poll server for scores and calulate ratings
+ * Poll server for scores and calculate ratings
  */
 
 let lastUpdated = new Date();
 let pollInterval: NodeJS.Timeout | undefined = undefined;
 
 let missions: Record<string, Record<string, Array<Mission>>>; // {game_name: {difficulty_name: [mission]}}
+let scores: Array<Player>;
+
+function createPlayer(username: string, name: string): Player {
+	const player: Player = {
+		username: username,
+		name: name,
+		scores: {},
+		totals: {total: 0, games: {}},
+	};
+	for (const gameName in missions) {
+		player.scores[gameName] = {};
+		const game = player.scores[gameName];
+		player.totals.games[gameName] = {total: 0, difficulties: {}};
+		const gameTotal = player.totals.games[gameName];
+		for (const difficultyName in missions[gameName]) {
+			game[difficultyName] = {};
+			const diff = game[difficultyName];
+			gameTotal.difficulties[difficultyName] = 0;
+			for (const mission of missions[gameName][difficultyName]) {
+				diff[mission.id] = undefined;
+			}
+		}
+	}
+	return player;
+}
+
+function calcScores(scores: Array<Score>): Array<Player> {
+	const players: Record<string, Player> = {};
+	// Figure out each player's best score for each level
+	console.log("Adding scores");
+	for (const score of scores) {
+		if (!(score.name in scores)) {
+			players[score.name] = createPlayer(score.username, score.name);
+		}
+		const player = players[score.name];
+		const mission = (missionReference as Record<number, Mission>)[score.mission_id];
+		const prevScore = player.scores[mission.game_name][mission.difficulty_name][mission.id];
+		if (prevScore === undefined || (score.rating > prevScore.rating)) {
+			player.scores[mission.game_name][mission.difficulty_name][mission.id] = score;
+		}
+	}
+	// Sum up best scores for each player
+	console.log("Summing totals");
+	for (const playerName in players) {
+		const player = players[playerName];
+		for (const gameName in player.scores) {
+			const game = player.scores[gameName];
+			const gameTotal = player.totals.games[gameName];
+			for (const difficultyName in game) {
+				const diff = game[difficultyName];
+				for (const missionId in diff) {
+					const score = diff[missionId];
+					if (score) {
+						player.totals.total += score.rating;
+						gameTotal.total += score.rating;
+						gameTotal.difficulties[difficultyName] += score.rating;
+					}
+				}
+			}
+		}
+	}
+	// Sort ratings by who has the most
+	console.log("Sorting results");
+	const result: Array<Player> = [];
+	for (const playerName in players) {
+		result.push(players[playerName]);
+	}
+	result.sort((p1, p2) => {
+		return p2.totals.total - p1.totals.total;
+	})
+
+	return result;
+}
 
 async function pollScores() {
 	if (!missionReference) {
+		console.log("Fetching missions...");
 		missionReference = await getMissions();
 		if (!missionReference) {
 			// ruh roh...
@@ -99,6 +194,7 @@ async function pollScores() {
 		}
 	}
 
+	console.log("Fetching scores...");
 	const res = await fetch("https://marbleblast.com/pq/leader/api/Score/GetGlobalScoresRatingRace.php");
 	if (res.status !== 200) {
 		console.error("Failed to get scores!!");
@@ -106,9 +202,13 @@ async function pollScores() {
 	}
 	const json = await res.json();
 
+	console.log("Building missions");
 	missions = calcMissions(json.missionList);
+	console.log("Calculating ratings");
+	scores = calcScores(json.scores);
 
 	lastUpdated = new Date();
+	console.log("Done");
 }
 
 pollInterval = setInterval(pollScores, POLL_INTERVAL);
@@ -124,6 +224,14 @@ app.use(express.static(path.join(__dirname, "static")));
 app.get("/missions", (req, res) => {
 	res.json(missions);
 });
+
+app.get("/lastupdated", (req, res) => {
+	res.send(lastUpdated);
+})
+
+app.get("/scores", (req, res) => {
+	res.json(scores);
+})
 
 app.listen(PORT, () => {
 	console.log(`Started HTTP server on port ${PORT}`);
