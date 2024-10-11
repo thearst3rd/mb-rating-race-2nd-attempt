@@ -16,6 +16,12 @@
 			<h1>Marble Blast Rating Race</h1>
 			<h3 id="fetching-text">You'll need javascript enabled for this! Sorry!!!</h3>
 			<p id="start-end-time-text"></p>
+			<div class="form-check">
+				<input class="form-check-input" type="checkbox" value="" id="refresh-check" checked>
+				<label class="form-check-label" for="refresh-check">
+					Automatically refresh
+				</label>
+			</div>
 		</div>
 		<p id="debug-text"></p>
 		<table class="table table-bordered table-striped table-sm" id="score-table"></table>
@@ -25,6 +31,7 @@
 		const scoreTable = document.getElementById("score-table");
 		const fetchingText = document.getElementById("fetching-text");
 		const startEndTimeText = document.getElementById("start-end-time-text");
+		const refreshCheck = document.getElementById("refresh-check");
 		const debugText = document.getElementById("debug-text");
 		fetchingText.innerText = "Fetching missions...";
 
@@ -174,6 +181,9 @@
 
 		async function poll() {
 			try {
+				if (!refreshCheck.checked) {
+					return;
+				}
 				if (currentlyPolling) {
 					console.warn("Already polling!!");
 					return;
