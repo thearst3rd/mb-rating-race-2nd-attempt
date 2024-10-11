@@ -13,11 +13,11 @@
 	</style>
 	<body>
 		<div class="container my-5">
-			<h1>Marble Blast Rating Race</h1>
+			<a href=".."><h1>Marble Blast Rating Race</h1></a>
 			<h2 id="player-breakdown-text"></h2>
 			<h4 id="rank-text"></h4>
 			<h3 id="fetching-text">You'll need javascript enabled for this! Sorry!!!</h3>
-			<a href="..">Back</a>
+			<p id="start-end-time-text"></p>
 		</div>
 		<p id="debug-text"></p>
 		<table class="table table-bordered table-striped table-sm" id="score-table"></table>
@@ -28,6 +28,7 @@
 		const playerBreakdownText = document.getElementById("player-breakdown-text");
 		const rankText = document.getElementById("rank-text");
 		const fetchingText = document.getElementById("fetching-text");
+		const startEndTimeText = document.getElementById("start-end-time-text");
 		const debugText = document.getElementById("debug-text");
 		fetchingText.innerText = "Fetching missions...";
 
@@ -138,9 +139,27 @@
 				json = await res.json();
 
 				playerBreakdownText.innerText = `Player Breakdown: ${playerName}`;
-				rankText.innerText = `Rank: ${json.rank}`;
+				rankText.innerText = `Rank: ${json.player.rank}`;
 
-				populateTable(json);
+				const currentTime = new Date();
+				const startTime = new Date(json.player.startTime ?? json.startTime);
+				const endTime = new Date(json.player.endTime ?? json.endTime);
+
+				if (json.player.startTime || json.player.endTime)
+					startEndTimeText.innerHTML = "<b>EXCEPTION: </b>"
+
+				if (currentTime < startTime)
+					startEndTimeText.innerHTML += "Timing begins ";
+				else
+					startEndTimeText.innerHTML += "Timing began ";
+				startEndTimeText.innerHTML += `<b>${startTime}</b>`;
+				if (currentTime < endTime)
+					startEndTimeText.innerHTML += " and ends ";
+				else
+					startEndTimeText.innerHTML += " and ended ";
+				startEndTimeText.innerHTML += `<b>${endTime}</b>.`;
+
+				populateTable(json.player);
 
 				fetchingText.innerText = "";
 			} catch (ex) {

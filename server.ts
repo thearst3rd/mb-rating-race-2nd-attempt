@@ -321,7 +321,11 @@ app.get("/playerscores/:player", (req, res) => {
 	}
 	for (const player of scores) {
 		if (player.name === req.params.player) {
-			res.json(player);
+			res.json({
+				startTime: startTime,
+				endTime: endTime,
+				player: player,
+			});
 			return;
 		}
 	}
