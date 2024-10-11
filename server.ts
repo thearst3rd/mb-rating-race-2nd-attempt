@@ -107,7 +107,6 @@ function calcMissions(missionList: Array<number>): Record<string, Record<string,
  */
 
 let lastUpdated = new Date("1970-01-01T00:00:00Z");
-let pollInterval: NodeJS.Timeout | undefined = undefined;
 
 let missions: Record<string, Record<string, Array<Mission>>>; // {game_name: {difficulty_name: [mission]}}
 let scores: Array<Player>;
@@ -222,11 +221,38 @@ function calcScores(scores: Array<Score>): Array<Player> {
 
 let currentlyPolling = false;
 
+function shouldPoll(): boolean {
+	if (lastUpdated < new Date("1971-01-01T00:00:00Z"))
+		return true;
+
+	const currentTime = new Date();
+
+	if (lastUpdated >= startTime && lastUpdated <= endTime)
+		return true;
+	if (currentTime >= startTime && currentTime <= endTime)
+		return true;
+
+	for (const ex of exceptions) {
+		if (lastUpdated >= ex.startTime && lastUpdated <= ex.endTime)
+			return true;
+		if (currentTime >= ex.startTime && currentTime <= ex.endTime)
+			return true;
+	}
+
+	return false;
+}
+
 async function pollScores() {
 	if (currentlyPolling) {
 		console.warn("Tried polling while already polling!");
 		return;
 	}
+
+	if (!shouldPoll()) {
+		console.info("Skipping polling");
+		return;
+	}
+
 	currentlyPolling = true;
 
 	if (!missionReference) {
@@ -263,7 +289,7 @@ async function pollScores() {
 	console.log("Done");
 }
 
-pollInterval = setInterval(pollScores, POLL_INTERVAL);
+setInterval(pollScores, POLL_INTERVAL);
 pollScores();
 
 
