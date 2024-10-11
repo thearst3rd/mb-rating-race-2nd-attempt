@@ -15,6 +15,7 @@
 		<div class="container my-5">
 			<a href=".."><h1>Marble Blast Rating Race</h1></a>
 			<h3 id="fetching-text">You'll need javascript enabled for this! Sorry!!!</h3>
+			<p id="last-updated-text"></p>
 			<p id="start-end-time-text"></p>
 		</div>
 		<p id="debug-text"></p>
@@ -26,6 +27,7 @@
 		const playerBreakdownText = document.getElementById("player-breakdown-text");
 		const rankText = document.getElementById("rank-text");
 		const fetchingText = document.getElementById("fetching-text");
+		const lastUpdatedText = document.getElementById("last-updated-text");
 		const startEndTimeText = document.getElementById("start-end-time-text");
 		const debugText = document.getElementById("debug-text");
 		fetchingText.innerText = "Fetching exceptions...";
@@ -68,6 +70,8 @@
 				}
 				let json = await res.json(); // "json" but it is actually a string
 				lastUpdated = new Date(json);
+
+				lastUpdatedText.innerText = `Last updated: ${lastUpdated}`;
 
 				res = await fetch(`../meta`);
 				json = await res.json();

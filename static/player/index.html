@@ -18,6 +18,7 @@
 			<h4 id="rank-text"></h4>
 			<h3 id="fetching-text">You'll need javascript enabled for this! Sorry!!!</h3>
 			<p id="start-end-time-text"></p>
+			<p id="last-updated-text"></p>
 			<div class="form-check">
 				<input class="form-check-input" type="checkbox" value="" id="refresh-check" checked>
 				<label class="form-check-label" for="refresh-check">
@@ -35,6 +36,7 @@
 		const rankText = document.getElementById("rank-text");
 		const fetchingText = document.getElementById("fetching-text");
 		const startEndTimeText = document.getElementById("start-end-time-text");
+		const lastUpdatedText = document.getElementById("last-updated-text");
 		const refreshCheck = document.getElementById("refresh-check");
 		const debugText = document.getElementById("debug-text");
 		fetchingText.innerText = "Fetching missions...";
@@ -136,6 +138,8 @@
 				}
 				let json = await res.json(); // "json" but it is actually a string
 				lastUpdated = new Date(json);
+
+				lastUpdatedText.innerText = `Last updated: ${lastUpdated}`;
 
 				res = await fetch("../missions");
 				json = await res.json();
