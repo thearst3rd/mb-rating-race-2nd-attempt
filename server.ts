@@ -23,10 +23,11 @@ interface Mission {
 interface Player {
 	username: string;
 	name: string;
-	//startTime: Date | undefined;
-	//endTime: Date | undefined;
+	startTime: Date | undefined;
+	endTime: Date | undefined;
 	scores: Record<string, Record<string, Record<number, Score | null>>>;
 	totals: {total: number, games: Record<string, {total: number, difficulties: Record<string, number>}>};
+	rank: number;
 }
 
 interface Score {
@@ -110,14 +111,25 @@ let pollInterval: NodeJS.Timeout | undefined = undefined;
 
 let missions: Record<string, Record<string, Array<Mission>>>; // {game_name: {difficulty_name: [mission]}}
 let scores: Array<Player>;
+let startTime: Date;
+let endTime: Date;
+let exceptions: Array<{user: string, startTime: Date, endTime: Date}>;
 
 function createPlayer(username: string, name: string): Player {
 	const player: Player = {
 		username: username,
 		name: name,
+		startTime: undefined,
+		endTime: undefined,
 		scores: {},
 		totals: {total: 0, games: {}},
+		rank: -1,
 	};
+	const ex = exceptions.filter(ex => (ex.user === name))[0];
+	if (ex) {
+		player.startTime = ex.startTime;
+		player.endTime = ex.endTime;
+	}
 	for (const gameName in missions) {
 		player.scores[gameName] = {};
 		const game = player.scores[gameName];
@@ -135,6 +147,19 @@ function createPlayer(username: string, name: string): Player {
 	return player;
 }
 
+function calcExceptions(data: Record<string, [string, string]>) {
+	const exceptions : Array<{user: string, startTime: Date, endTime: Date}> = [];
+	for (const name in data) {
+		const ex = data[name];
+		exceptions.push({
+			user: name,
+			startTime: new Date(ex[0] + "Z"),
+			endTime: new Date(ex[1] + "Z"),
+		});
+	}
+	return exceptions;
+}
+
 function calcScores(scores: Array<Score>): Array<Player> {
 	const players: Record<string, Player> = {};
 	// Figure out each player's best score for each level
@@ -147,7 +172,7 @@ function calcScores(scores: Array<Score>): Array<Player> {
 		const mission = (missionReference as Record<number, Mission>)[score.mission_id];
 		const prevScore = player.scores[mission.game_name][mission.difficulty_name][mission.id];
 		if (prevScore === null || (score.rating > prevScore.rating)) {
-			score.timestamp = new Date(score.timestamp);
+			score.timestamp = new Date(score.timestamp + "Z");
 			player.scores[mission.game_name][mission.difficulty_name][mission.id] = score;
 		}
 	}
@@ -180,6 +205,17 @@ function calcScores(scores: Array<Score>): Array<Player> {
 	result.sort((p1, p2) => {
 		return p2.totals.total - p1.totals.total;
 	})
+	// Assign ranks
+	let lastRating = Infinity;
+	let lastRank = 0;
+	for (let i = 0; i < result.length; i++) {
+		const player = result[i];
+		if (player.totals.total < lastRating) {
+			lastRank = i + 1;
+			lastRating = player.totals.total;
+		}
+		player.rank = lastRank;
+	}
 
 	return result;
 }
@@ -213,6 +249,10 @@ async function pollScores() {
 	}
 	const json = await res.json();
 
+	console.log("Extracting metadata");
+	startTime = new Date(json.startTime + "Z");
+	endTime = new Date(json.endTime + "Z");
+	exceptions = calcExceptions(json.exceptions);
 	console.log("Building missions");
 	missions = calcMissions(json.missionList);
 	console.log("Calculating ratings");
@@ -246,13 +286,26 @@ app.get("/lastupdated", (req, res) => {
 	res.send(lastUpdated);
 })
 
+app.get("/meta", (req, res) => {
+	res.json({
+		startTime: startTime,
+		endTime: endTime,
+		exceptions: exceptions,
+	});
+})
+
 app.get("/scores", (req, res) => {
 	if (!scores) {
 		res.status(500);
 		res.json({error: "Please wait lmao"});
 		return;
 	}
-	res.json(scores);
+	res.json({
+		startTime: startTime,
+		endTime: endTime,
+		exceptions: exceptions,
+		scores: scores,
+	});
 })
 
 app.get("/playerscores/:player", (req, res) => {
