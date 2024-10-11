@@ -56,6 +56,14 @@
 		let difficultyRowMap = {}; // {gameName: {difficultyName: idx}}
 		let missionRowMap = {}; // {missionId: idx}
 
+		function formatTime(timeInMs) {
+			const ms = timeInMs % 1000;
+			const sec = Math.floor(timeInMs / 1000) % 60;
+			const min = Math.floor(timeInMs / 60000);
+
+			return `${String(min).padStart(2, "0")}:${String(sec).padStart(2, "0")}.${String(ms).padStart(3, "0")}`;
+		}
+
 		function createTable(json) {
 			// Construct table header
 			{
@@ -114,8 +122,8 @@
 						const row = scoreTable.rows[missionRowMap[missionId]];
 						if (score) {
 							row.insertCell().innerText = score.id;
-							row.insertCell().innerText = score.score;
-							row.insertCell().innerText = score.total_bonus;
+							row.insertCell().innerText = score.score_type === "time" ? formatTime(score.score) : score.score;
+							row.insertCell().innerText = formatTime(score.total_bonus);
 							row.insertCell().innerText = score.rating;
 							row.insertCell().innerText = new Date(score.timestamp);
 						} else {
