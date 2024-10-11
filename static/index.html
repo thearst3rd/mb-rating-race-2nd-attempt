@@ -160,6 +160,9 @@
 					startEndTimeText.innerHTML += " and ended ";
 				startEndTimeText.innerHTML += `<b>${endTime}</b>.`;
 
+				if (json.exceptions.length > 0)
+					startEndTimeText.innerHTML += ' <a href="./exceptions">(View Exceptions)</a>';
+
 				populateTable(json.scores);
 
 				fetchingText.innerText = "";
