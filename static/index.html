@@ -102,7 +102,7 @@
 				}
 
 				scoreTable.rows[0].insertCell().innerText = player.rank;
-				scoreTable.rows[1].insertCell().innerHTML = `<a href="./player?player=${player.name}">${player.name}</a>`;
+				scoreTable.rows[1].insertCell().innerHTML = `<a href="./player/?player=${player.name}">${player.name}</a>`;
 				scoreTable.rows[2].insertCell().innerText = player.totals.total;
 
 				for (const gameName in player.scores) {
@@ -161,7 +161,7 @@
 				startEndTimeText.innerHTML += `<b>${endTime}</b>.`;
 
 				if (json.exceptions.length > 0)
-					startEndTimeText.innerHTML += ' <a href="./exceptions">(View Exceptions)</a>';
+					startEndTimeText.innerHTML += ' <a href="./exceptions/">(View Exceptions)</a>';
 
 				populateTable(json.scores);
 
