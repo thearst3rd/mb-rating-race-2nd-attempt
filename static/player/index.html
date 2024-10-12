@@ -8,7 +8,7 @@
 	</head>
 	<style>
 		td, th {
-			text-align: center
+			text-align: center;
 		}
 	</style>
 	<body>
@@ -16,6 +16,7 @@
 			<a href=".."><h1>Marble Blast Rating Race</h1></a>
 			<h2 id="player-breakdown-text"></h2>
 			<h4 id="rank-text"></h4>
+			<h4 id="total-rating-text"></h4>
 			<h3 id="fetching-text">You'll need javascript enabled for this! Sorry!!!</h3>
 			<p id="start-end-time-text"></p>
 			<p id="last-updated-text"></p>
@@ -34,6 +35,7 @@
 		const scoreTable = document.getElementById("score-table");
 		const playerBreakdownText = document.getElementById("player-breakdown-text");
 		const rankText = document.getElementById("rank-text");
+		const totalRatingText = document.getElementById("total-rating-text");
 		const fetchingText = document.getElementById("fetching-text");
 		const startEndTimeText = document.getElementById("start-end-time-text");
 		const lastUpdatedText = document.getElementById("last-updated-text");
@@ -157,8 +159,9 @@
 				res = await fetch(`../playerscores/${playerName}`);
 				json = await res.json();
 
-				playerBreakdownText.innerText = `Player Breakdown: ${playerName}`;
+				playerBreakdownText.innerHTML = `Player Breakdown: <b>${playerName}</b>`;
 				rankText.innerText = `Rank: ${json.player.rank}`;
+				totalRatingText.innerText = `Total Rating: ${json.player.totals.total}`;
 
 				const currentTime = new Date();
 				const startTime = new Date(json.player.startTime ?? json.startTime);
