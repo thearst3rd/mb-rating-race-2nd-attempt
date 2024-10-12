@@ -96,6 +96,10 @@
 			}
 		}
 
+		function formatRating(rating) {
+			return rating.toLocaleString("en-US");
+		}
+
 		function populateTable(json) {
 			for (const idx in json) {
 				const player = json[idx];
@@ -112,7 +116,7 @@
 
 				scoreTable.rows[0].insertCell().innerText = player.rank;
 				scoreTable.rows[1].insertCell().innerHTML = `<a href="./player/?player=${player.name}">${player.name}</a>`;
-				scoreTable.rows[2].insertCell().innerText = player.totals.total;
+				scoreTable.rows[2].insertCell().innerText = formatRating(player.totals.total);
 
 				for (const gameName in player.scores) {
 					const game = player.scores[gameName];
@@ -122,15 +126,15 @@
 							const score = diff[missionId];
 							const cell = scoreTable.rows[missionRowMap[missionId]].insertCell();
 							if (score)
-								cell.innerText = score.rating;
+								cell.innerText = formatRating(score.rating);
 							else
 								cell.innerText = "-";
 						}
 						if (difficultyName in difficultyTotalRowMap[gameName])
-							scoreTable.rows[difficultyTotalRowMap[gameName][difficultyName]].insertCell().innerText = player.totals.games[gameName].difficulties[difficultyName];
+							scoreTable.rows[difficultyTotalRowMap[gameName][difficultyName]].insertCell().innerText = formatRating(player.totals.games[gameName].difficulties[difficultyName]);
 					}
 					if (gameName in gameTotalRowMap)
-						scoreTable.rows[gameTotalRowMap[gameName]].insertCell().innerText = player.totals.games[gameName].total;
+						scoreTable.rows[gameTotalRowMap[gameName]].insertCell().innerText = formatRating(player.totals.games[gameName].total);
 				}
 			}
 		}

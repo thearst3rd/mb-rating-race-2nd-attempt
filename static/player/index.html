@@ -114,6 +114,10 @@
 			}
 		}
 
+		function formatRating(rating) {
+			return rating.toLocaleString("en-US");
+		}
+
 		function populateTable(player) {
 			for (const gameName in player.scores) {
 				const game = player.scores[gameName];
@@ -126,7 +130,7 @@
 							row.insertCell().innerText = score.id;
 							row.insertCell().innerText = score.score_type === "time" ? formatTime(score.score) : score.score;
 							row.insertCell().innerText = formatTime(Math.abs(score.total_bonus));
-							row.insertCell().innerText = score.rating;
+							row.insertCell().innerText = formatRating(score.rating);
 							row.insertCell().innerText = new Date(score.timestamp);
 						} else {
 							const cell = row.insertCell();
@@ -161,7 +165,7 @@
 
 				playerBreakdownText.innerHTML = `Player Breakdown: <b>${playerName}</b>`;
 				rankText.innerText = `Rank: ${json.player.rank}`;
-				totalRatingText.innerText = `Total Rating: ${json.player.totals.total}`;
+				totalRatingText.innerText = `Total Rating: ${formatRating(json.player.totals.total)}`;
 
 				const currentTime = new Date();
 				const startTime = new Date(json.player.startTime ?? json.startTime);
